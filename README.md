@@ -53,3 +53,13 @@ bulk-screenshot-extractor/
     └── video2/
         ├── ...
 ```
+
+---
+
+## 🎯 Perfect for AI & ML Training
+
+This tool is specifically designed to streamline data collection for:
+- **LLM & Vision Model Training**: Quickly generate large datasets of images from raw video.
+- **Dataset Labeling**: Compatible with tools like Label Studio or CVAT (images are pre-sorted and numerically named).
+- **Fine-tuning**: Extract specific temporal samples for training gesture recognition, object detection, or scene understanding models.
+- **Preprocessing**: Handles the heavy lifting of video decoding so you can focus on training.
