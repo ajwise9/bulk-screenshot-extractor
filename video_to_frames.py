@@ -1,13 +1,41 @@
 import cv2
 import os
 import sys
+import subprocess
+import json
 
 # --- CONFIGURATION ---
-# How many screenshots to extract per second of video
-SCREENSHOTS_PER_SECOND = 1
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 
-# Name of the folder where results will be stored (created in the same directory as this script)
-OUTPUT_FOLDER_NAME = "outputfolder"
+def load_config():
+    default_config = {
+        "INTERVAL_MINUTES": 0,
+        "INTERVAL_SECONDS": 3,
+        "SCREENSHOTS_PER_INTERVAL": 1,
+        "OUTPUT_FOLDER_NAME": "outputfolder"
+    }
+    if not os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(default_config, f, indent=4)
+            print(f"Created default configuration file at {CONFIG_FILE}")
+        except Exception as e:
+            print(f"Warning: Could not create config file: {e}")
+        return default_config
+        
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error loading config.json: {e}. Using defaults.")
+        return default_config
+
+config = load_config()
+
+INTERVAL_MINUTES = config.get("INTERVAL_MINUTES", 0)
+INTERVAL_SECONDS = config.get("INTERVAL_SECONDS", 3)
+SCREENSHOTS_PER_INTERVAL = config.get("SCREENSHOTS_PER_INTERVAL", 1)
+OUTPUT_FOLDER_NAME = config.get("OUTPUT_FOLDER_NAME", "outputfolder")
 # ---------------------
 
 def extract_frames(video_path):
@@ -38,8 +66,31 @@ def extract_frames(video_path):
     cap = cv2.VideoCapture(video_path)
     
     if not cap.isOpened():
-        print("Error: Could not open video.")
-        return
+        print(f"Warning: OpenCV could not open '{file_name}'. Attempting lossless conversion to MP4 using ffmpeg...")
+        converted_path = os.path.join(os.path.dirname(video_path), f"{base_name}_converted.mp4")
+        
+        if not os.path.exists(converted_path):
+            try:
+                # Use -y to overwrite if needed. We copy codecs to avoid quality loss and speed up process
+                subprocess.run(
+                    ["ffmpeg", "-i", video_path, "-vcodec", "copy", "-acodec", "copy", converted_path],
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+            except subprocess.CalledProcessError:
+                print(f"Error: ffmpeg conversion failed for '{file_name}'.")
+                return
+            except FileNotFoundError:
+                print("Error: ffmpeg is not installed on your system. Please install ffmpeg to process this file format.")
+                return
+                
+        # Try opening the converted video
+        cap = cv2.VideoCapture(converted_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video '{file_name}' even after conversion.")
+            return
+        print(f"✅ Successfully converted and opened '{base_name}_converted.mp4'")
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps == 0:
@@ -53,11 +104,19 @@ def extract_frames(video_path):
     print(f"FPS: {fps}")
     print(f"Total Frames: {frame_count}")
     print(f"Duration: {duration_sec:.2f} seconds")
-    print(f"Target: {SCREENSHOTS_PER_SECOND} screenshot(s) per second")
+    
+    interval_total_seconds = (INTERVAL_MINUTES * 60) + INTERVAL_SECONDS
+    if interval_total_seconds <= 0 or SCREENSHOTS_PER_INTERVAL <= 0:
+        print("Error: Invalid configuration for interval or screenshots. Must be greater than 0.")
+        return
+
+    screenshots_per_second_rate = SCREENSHOTS_PER_INTERVAL / interval_total_seconds
+
+    print(f"Target: {SCREENSHOTS_PER_INTERVAL} screenshot(s) every {INTERVAL_MINUTES} minute(s) and {INTERVAL_SECONDS} second(s)")
     
     saved_count = 0
     current_sec = 0.0
-    step_sec = 1.0 / SCREENSHOTS_PER_SECOND
+    step_sec = 1.0 / screenshots_per_second_rate
     
     while True:
         # Calculate which frame corresponds to the current second timestamp

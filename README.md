@@ -9,13 +9,24 @@
 ## 🚀 Quick Start
 
 ### 1. Setup
-Make sure you have Python installed, then install the required library:
+Make sure you have Python installed. It is recommended to use a virtual environment:
 ```bash
-pip install opencv-python
+# Create a virtual environment
+python -m venv .venv
+
+# Activate it (Mac/Linux)
+source .venv/bin/activate
+# Or on Windows:
+# .venv\Scripts\activate
+
+# Install the required libraries
+pip install -r requirements.txt
 ```
 
+> **Note on `.mkv` files:** If you are processing `.mkv` files and OpenCV fails to read them natively, the script will automatically invoke `ffmpeg` to transparently convert them to `.mp4` using a lossless stream copy. Make sure you have `ffmpeg` installed on your system if you plan to process these formats.
+
 ### 2. Prepare Videos
-Place all your video files (`.mp4`, `.mov`, `.avi`, etc.) inside the **`videos`** folder.
+Place all your video files (`.mp4`, `.mov`, `.avi`, `.mkv`, etc.) inside the **`videos`** folder.
 
 ### 3. Run
 Execute the script:
@@ -30,13 +41,21 @@ Check the **`outputfolder`**. You will find a folder for each video containing i
 
 ## ⚙️ Configuration
 
-Want more or fewer screenshots? Open `video_to_frames.py` and adjust the configuration at the top:
+Want more or fewer screenshots? You can configure the exact output logic by opening the `config.json` file (which will be created automatically on first run):
 
-```python
-# --- CONFIGURATION ---
-# How many screenshots to extract per second of video
-SCREENSHOTS_PER_SECOND = 1  # Change this number! (e.g. 0.5 for every 2 seconds, 2 for twice a second)
+```json
+{
+    "INTERVAL_MINUTES": 0,
+    "INTERVAL_SECONDS": 3,
+    "SCREENSHOTS_PER_INTERVAL": 1,
+    "OUTPUT_FOLDER_NAME": "outputfolder"
+}
 ```
+
+Example configurations:
+- **1 screenshot every 3 seconds**: Set `INTERVAL_SECONDS` to `3` and `SCREENSHOTS_PER_INTERVAL` to `1`
+- **10 screenshots per minute**: Set `INTERVAL_MINUTES` to `1` and `SCREENSHOTS_PER_INTERVAL` to `10`
+
 
 ---
 
@@ -45,6 +64,8 @@ SCREENSHOTS_PER_SECOND = 1  # Change this number! (e.g. 0.5 for every 2 seconds,
 ```
 bulk-screenshot-extractor/
 ├── video_to_frames.py    # The magic script
+├── config.json           # Stores your interval settings
+├── requirements.txt      # Python dependencies
 ├── videos/               # PUT YOUR VIDEOS HERE
 └── outputfolder/         # GET YOUR IMAGES HERE
     ├── video1/
