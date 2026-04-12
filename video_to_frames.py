@@ -66,31 +66,31 @@ def extract_frames(video_path):
     cap = cv2.VideoCapture(video_path)
     
     if not cap.isOpened():
-        print(f"Warning: OpenCV could not open '{file_name}'. Attempting lossless conversion to MP4 using ffmpeg...")
-        converted_path = os.path.join(os.path.dirname(video_path), f"{base_name}_converted.mp4")
+        print(f"Warning: '{file_name}'. Using alternative method to extract frames...")
         
-        if not os.path.exists(converted_path):
-            try:
-                # Use -y to overwrite if needed. We copy codecs to avoid quality loss and speed up process
-                subprocess.run(
-                    ["ffmpeg", "-i", video_path, "-vcodec", "copy", "-acodec", "copy", converted_path],
-                    check=True,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
-                )
-            except subprocess.CalledProcessError:
-                print(f"Error: ffmpeg conversion failed for '{file_name}'.")
-                return
-            except FileNotFoundError:
-                print("Error: ffmpeg is not installed on your system. Please install ffmpeg to process this file format.")
-                return
-                
-        # Try opening the converted video
-        cap = cv2.VideoCapture(converted_path)
-        if not cap.isOpened():
-            print(f"Error: Could not open video '{file_name}' even after conversion.")
+        interval_total_seconds = (INTERVAL_MINUTES * 60) + INTERVAL_SECONDS
+        if interval_total_seconds <= 0 or SCREENSHOTS_PER_INTERVAL <= 0:
+            print("Error: Invalid configuration for interval or screenshots. Must be greater than 0.")
             return
-        print(f"✅ Successfully converted and opened '{base_name}_converted.mp4'")
+
+        screenshots_per_second_rate = SCREENSHOTS_PER_INTERVAL / interval_total_seconds
+        
+        output_pattern = os.path.join(video_output_dir, "%d.jpg")
+        
+        try:
+            # Native direct ffmpeg frame extraction. -q:v 2 yields high quality jpeg. 
+            subprocess.run(
+                ["ffmpeg", "-i", video_path, "-vf", f"fps={screenshots_per_second_rate}", "-q:v", "2", "-y", output_pattern],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print(f"✅ FFMPEG Direct Extraction Complete! Saved naturally to '{video_output_dir}'.")
+        except subprocess.CalledProcessError:
+            print(f"Error: ffmpeg extraction failed for '{file_name}'.")
+        except FileNotFoundError:
+            print("Error: ffmpeg is not installed on your system. Please install ffmpeg to process this file format.")
+        return
 
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps == 0:
