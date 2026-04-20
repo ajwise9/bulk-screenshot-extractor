@@ -1,6 +1,6 @@
 {
     "INTERVAL_MINUTES": 0,
-    "INTERVAL_SECONDS": 3,
+    "INTERVAL_SECONDS": 2,
     "SCREENSHOTS_PER_INTERVAL": 1,
     "OUTPUT_FOLDER_NAME": "outputfolder"
 }

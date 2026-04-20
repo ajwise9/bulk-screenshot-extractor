@@ -12,3 +12,4 @@ __pycache__/
 venv/
 videos/*
 !videos/.gitkeep
+.DS_Store
